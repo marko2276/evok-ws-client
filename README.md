@@ -2,7 +2,7 @@
 A simple wrapper/library for a client using websockets to connect to [Evok API](https://github.com/UniPiTechnology/evok) running on Unipi devices.
 The library was implemented primarily to be used with home-assistant but hopefully it might find also other usage as well.
 
-Functionality wise it supports bare minimum so that my home-assitent project can function.
+Functionality wise, it supports bare minimum so that my home-assistant project works.
 
 # Example
 ```
