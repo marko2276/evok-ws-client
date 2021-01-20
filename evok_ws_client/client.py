@@ -5,7 +5,8 @@ import websockets
 
 _LOGGER = logging.getLogger(__name__)
 
-#Note: There are far more neuron or unipi devices that should work
+'''Note: There are far more neuron or unipi devices that should work
+   The conf types are unused for now'''
 CONF_NEURON_TYPES = ["L203", "M203", "S203"]
 supportedEvokDev = ["relay", "led", "input"]
 
@@ -17,9 +18,9 @@ class UnipiEvokWsClient:
         self._type = neuron_type
         self._ws = None
         self._name = name
-        self._state = {}
+        self._bin_state = {}
         for i in supportedEvokDev:
-            self._state[i] = {}
+            self._bin_state[i] = {}
 
     async def evok_connect(self):
         _LOGGER.debug("Connecting to: %s", self._ws_address)
@@ -42,7 +43,7 @@ class UnipiEvokWsClient:
             return False
         return True
 
-    async def evok_receive(self, state_change_event_callback = None):
+    async def evok_receive(self, decode = True, state_change_event_callback = None):
         try:
             message = await self._ws.recv()
         except websockets.exceptions.ConnectionClosedError:
@@ -55,6 +56,9 @@ class UnipiEvokWsClient:
         message = json.loads(message)
         _LOGGER.debug("Evok Received: %s", message)
 
+        if not decode:
+            return message
+
         for section in message:
             if "dev" in section.keys():
                 device = section["dev"]
@@ -66,17 +70,17 @@ class UnipiEvokWsClient:
                         continue
 
                     try:
-                        old_val = self._state[device][circuit]
+                        old_val = self._bin_state[device][circuit]
                     except:
                         old_val = None
                         pass
 
                     if old_val != value:
-                        self._state[device][circuit] = value
+                        self._bin_state[device][circuit] = value
                         if state_change_event_callback:
                             state_change_event_callback(self._name, device, circuit, value)
         
-        return True
+        return message
 
     async def evok_send(self, device, circuit, value):
         cmd = {}
@@ -86,32 +90,36 @@ class UnipiEvokWsClient:
         cmd["value"] = value
         cmdjson = json.dumps(cmd)
         _LOGGER.debug("Evok SEND: %s", cmdjson)
-        await self._evok_raw_send(cmdjson)
+        await self._evok_send_over_ws(cmdjson)
+
+    async def evok_send_raw(self, data):
+        await self._evok_send_over_ws(data)
                             
     async def evok_full_state_sync(self):
         # Get current state from the device
         cmd = {}
         cmd["cmd"] = "all"
         cmdjson = json.dumps(cmd)
-        await self._evok_raw_send(cmdjson)
+        await self._evok_send_over_ws(cmdjson)
 
-    async def evok_register_filter_dev(self):
-        # Register filterto get notification changes from the contoller
-        # Currently it is possible to register to device level only
+    ''' This should be extended allow configuration of filters '''
+    async def evok_register_default_filter_dev(self):
+        # Register filter to get notification changes from the contoller
+        # Currently supported filter on device level only
         cmd = {}
         cmd["cmd"] = "filter"
         cmd["devices"] = "relay", "led", "input"
         cmdjson = json.dumps(cmd)
         _LOGGER.debug("Setting Filter: %s", cmdjson)
-        await self._evok_raw_send(cmdjson)
+        await self._evok_send_over_ws(cmdjson)
 
     def evok_state_get(self, device, circuit):
         try:
-            return self._state[device][circuit]
+            return self._bin_state[device][circuit]
         except:
             return "0"
 
-    async def _evok_raw_send(self, cmd):
+    async def _evok_send_over_ws(self, cmd):
         _LOGGER.debug("Evok Raw SEND: %s", cmd)
         await self._ws.send(cmd)
 
