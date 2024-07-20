@@ -5,7 +5,7 @@ with open('README.md') as f:
 
 setuptools.setup(
         name='evok-ws-client',
-        version='0.0.3',
+        version='0.0.4',
         description='Client for connectin to Unipi devices runing EVOK API via websockets',
         long_description=long_description,
         long_description_content_type='text/markdown',  # This is important!

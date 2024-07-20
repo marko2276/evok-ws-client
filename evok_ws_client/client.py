@@ -8,7 +8,7 @@ _LOGGER = logging.getLogger(__name__)
 '''Note: There are far more neuron or unipi devices that should work
    The conf types are unused for now'''
 CONF_NEURON_TYPES = ["L203", "M203", "S203"]
-supportedEvokDev = ["relay", "led", "input"]
+supportedEvokDev = ["relay", "led", "input", "ro", "do", "di"]
 
 class UnipiEvokWsClient:
     """Wrapper class for connection to Unipi Neuron via EVOK and websocket"""
@@ -52,7 +52,7 @@ class UnipiEvokWsClient:
         except websockets.exceptions.ConnectionClosed:
             _LOGGER.warning("Evok WS conn CLOSED on: %s", self._ws_address)
             return False
-            
+
         message = json.loads(message)
         _LOGGER.debug("Evok Received: %s", message)
 
@@ -79,7 +79,7 @@ class UnipiEvokWsClient:
                         self._bin_state[device][circuit] = value
                         if state_change_event_callback:
                             state_change_event_callback(self._name, device, circuit, value)
-        
+
         return message
 
     async def evok_send(self, device, circuit, value):
@@ -94,7 +94,7 @@ class UnipiEvokWsClient:
 
     async def evok_send_raw(self, data):
         await self._evok_send_over_ws(data)
-                            
+
     async def evok_full_state_sync(self):
         # Get current state from the device
         cmd = {}
@@ -108,7 +108,7 @@ class UnipiEvokWsClient:
         # Currently supported filter on device level only
         cmd = {}
         cmd["cmd"] = "filter"
-        cmd["devices"] = "relay", "led", "input"
+        cmd["devices"] = "relay", "led", "input", "ro", "do", "di"
         cmdjson = json.dumps(cmd)
         _LOGGER.debug("Setting Filter: %s", cmdjson)
         await self._evok_send_over_ws(cmdjson)
